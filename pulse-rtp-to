@@ -1,0 +1,20 @@
+#!/bin/sh
+target_host=$1
+target_ip=`dig +short $target_host`
+
+pkill pulseaudio
+
+conf="/dev/null
+load-module module-null-sink sink_name=rtp format=s16le channels=2 rate=44100 sink_properties=\"device.description='RTP Sink'\"
+load-module module-rtp-send source=rtp.monitor loop=1 port=47777 destination_ip=$target_ip
+load-module module-native-protocol-unix
+set-default-sink rtp
+"
+
+pulseaudio --exit-idle-time=-1 -n -F "$conf"
+
+#wait, because killing pulse immediately after the foreground process exits doesn't do anything
+sleep 0.3
+
+#kill the background pulse process that may keep the unix socket busy
+pkill pulseaudio
